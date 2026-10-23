@@ -313,7 +313,6 @@ else:
 st.caption(
     "For educational purposes only; this is not medical advice."
 )
-```
 
 
     st.title("🤖 Fitness Coach")
