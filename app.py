@@ -230,9 +230,9 @@ elif page == "Hydration Tracker":
         st.plotly_chart(px.bar(hist, x="water_date", y="total_ml", title="Daily water log"), use_container_width=True)
 
 
-elif page == "AI Fitness Coach":
-import os
-from openai import OpenAI
+elif page == "AI Fitness Coach":    
+    import os
+    from openai import OpenAI
 
 ```
 st.title("🤖 FITAI PRO AI Fitness Coach")
