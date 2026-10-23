@@ -229,26 +229,22 @@ elif page == "Hydration Tracker":
     if not hist.empty:
         st.plotly_chart(px.bar(hist, x="water_date", y="total_ml", title="Daily water log"), use_container_width=True)
 
+
 elif page == "AI Fitness Coach":
 import os
-import streamlit as st
 from openai import OpenAI
 
 ```
 st.title("🤖 FITAI PRO AI Fitness Coach")
-st.write("Ask your AI coach about workouts, balanced nutrition, recovery, or fitness routines.")
+st.write("Ask your AI coach about workouts, balanced nutrition, recovery, and fitness routines.")
 
-# Read the API key from Streamlit Secrets or environment variables.
 try:
     api_key = st.secrets.get("OPENAI_API_KEY", "")
 except Exception:
     api_key = os.getenv("OPENAI_API_KEY", "")
 
 if not api_key:
-    st.warning(
-        "The AI coach is not configured yet. Add OPENAI_API_KEY "
-        "in your Streamlit app's Settings → Secrets."
-    )
+    st.warning("AI is not configured yet. Add OPENAI_API_KEY in Streamlit Settings → Secrets.")
 else:
     if "fitness_chat_history" not in st.session_state:
         st.session_state.fitness_chat_history = []
@@ -269,15 +265,12 @@ else:
 
         instructions = (
             "You are FITAI PRO, a helpful fitness education assistant. "
-            "Give clear, practical, balanced advice about exercise, "
-            "recovery, hydration, and general nutrition. "
-            "Adapt suggestions to the user's stated needs and experience. "
-            "Do not recommend extreme diets, dangerous supplements, "
-            "steroids, or excessive exercise. Do not diagnose medical "
-            "conditions. For injuries, concerning symptoms, or medical "
-            "conditions, recommend advice from a qualified professional. "
-            "Keep recommendations age-appropriate. Explain that fitness "
-            "results vary between individuals."
+            "Give practical, balanced advice about exercise, recovery, "
+            "hydration, and general nutrition. Avoid extreme diets, "
+            "dangerous supplements, steroids, and excessive exercise. "
+            "Do not diagnose medical conditions. Recommend a qualified "
+            "health professional for injuries or concerning symptoms. "
+            "Keep advice age-appropriate."
         )
 
         try:
@@ -285,11 +278,20 @@ else:
 
             with st.chat_message("assistant"):
                 with st.spinner("Your AI coach is thinking..."):
+                    conversation = [
+                        {
+                            "role": item["role"],
+                            "content": item["content"]
+                        }
+                        for item in st.session_state.fitness_chat_history
+                    ]
+
                     response = client.responses.create(
                         model="gpt-5.5",
                         instructions=instructions,
-                        input=question
+                        input=conversation
                     )
+
                     answer = response.output_text
                     st.markdown(answer)
 
@@ -299,21 +301,20 @@ else:
 
         except Exception as error:
             st.error(
-                "The AI request failed. Check that your API key is valid, "
-                "your API account has access to the selected model, and "
-                "your API billing is configured. "
-                f"Technical details: {error}"
+                "AI request failed. Check your API key, API billing, "
+                "model availability, and internet connection."
             )
+            st.caption(f"Technical details: {error}")
 
     if st.button("Clear conversation"):
         st.session_state.fitness_chat_history = []
         st.rerun()
 
 st.caption(
-    "For educational purposes only. This AI coach is not a substitute "
-    "for advice from a qualified health professional."
+    "For educational purposes only; this is not medical advice."
 )
 ```
+
 
     st.title("🤖 Fitness Coach")
     st.info("This starter coach uses a built-in knowledge base; it is not yet connected to a live AI model.")
