@@ -240,7 +240,7 @@ st.write("Ask your AI coach about workouts, balanced nutrition, recovery, or fit
 
 # Read the API key from Streamlit Secrets or environment variables.
 try:
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = st.secrets.get("OPENAI_API_KEY", "")
 except Exception:
     api_key = os.getenv("OPENAI_API_KEY", "")
 
