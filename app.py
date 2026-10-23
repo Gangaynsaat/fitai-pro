@@ -234,7 +234,7 @@ elif page == "AI Fitness Coach":
     import os
     from openai import OpenAI
 
-```
+
 st.title("🤖 FITAI PRO AI Fitness Coach")
 st.write("Ask your AI coach about workouts, balanced nutrition, recovery, and fitness routines.")
 
