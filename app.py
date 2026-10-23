@@ -230,6 +230,91 @@ elif page == "Hydration Tracker":
         st.plotly_chart(px.bar(hist, x="water_date", y="total_ml", title="Daily water log"), use_container_width=True)
 
 elif page == "AI Fitness Coach":
+import os
+import streamlit as st
+from openai import OpenAI
+
+```
+st.title("🤖 FITAI PRO AI Fitness Coach")
+st.write("Ask your AI coach about workouts, balanced nutrition, recovery, or fitness routines.")
+
+# Read the API key from Streamlit Secrets or environment variables.
+try:
+    api_key = os.getenv("OPENAI_API_KEY", "")
+except Exception:
+    api_key = os.getenv("OPENAI_API_KEY", "")
+
+if not api_key:
+    st.warning(
+        "The AI coach is not configured yet. Add OPENAI_API_KEY "
+        "in your Streamlit app's Settings → Secrets."
+    )
+else:
+    if "fitness_chat_history" not in st.session_state:
+        st.session_state.fitness_chat_history = []
+
+    for message in st.session_state.fitness_chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    question = st.chat_input("Ask your fitness coach a question...")
+
+    if question:
+        st.session_state.fitness_chat_history.append(
+            {"role": "user", "content": question}
+        )
+
+        with st.chat_message("user"):
+            st.markdown(question)
+
+        instructions = (
+            "You are FITAI PRO, a helpful fitness education assistant. "
+            "Give clear, practical, balanced advice about exercise, "
+            "recovery, hydration, and general nutrition. "
+            "Adapt suggestions to the user's stated needs and experience. "
+            "Do not recommend extreme diets, dangerous supplements, "
+            "steroids, or excessive exercise. Do not diagnose medical "
+            "conditions. For injuries, concerning symptoms, or medical "
+            "conditions, recommend advice from a qualified professional. "
+            "Keep recommendations age-appropriate. Explain that fitness "
+            "results vary between individuals."
+        )
+
+        try:
+            client = OpenAI(api_key=api_key)
+
+            with st.chat_message("assistant"):
+                with st.spinner("Your AI coach is thinking..."):
+                    response = client.responses.create(
+                        model="gpt-5.5",
+                        instructions=instructions,
+                        input=question
+                    )
+                    answer = response.output_text
+                    st.markdown(answer)
+
+            st.session_state.fitness_chat_history.append(
+                {"role": "assistant", "content": answer}
+            )
+
+        except Exception as error:
+            st.error(
+                "The AI request failed. Check that your API key is valid, "
+                "your API account has access to the selected model, and "
+                "your API billing is configured. "
+                f"Technical details: {error}"
+            )
+
+    if st.button("Clear conversation"):
+        st.session_state.fitness_chat_history = []
+        st.rerun()
+
+st.caption(
+    "For educational purposes only. This AI coach is not a substitute "
+    "for advice from a qualified health professional."
+)
+```
+
     st.title("🤖 Fitness Coach")
     st.info("This starter coach uses a built-in knowledge base; it is not yet connected to a live AI model.")
     question = st.text_area("Ask a fitness question", placeholder="How can I organize a balanced weekly workout?")
