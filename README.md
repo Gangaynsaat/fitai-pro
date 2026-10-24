@@ -1,8 +1,12 @@
-# FITAI PRO — Trainer-only upgrade
+# FITAI PRO — 3D Trainer Pro Upgrade
 
-This package preserves the existing FITAI PRO pages and replaces only the 3D Trainer page with a muscular articulated figure and exercise-specific movement previews. Blue highlights mark the selected muscle group.
+This package preserves the Streamlit app and expands 3D Trainer Studio with exercise families for bodyweight, dumbbell, barbell, and cable/machine training. It also fixes the missing `streamlit.components.v1` import and improves movement-pattern handling, including a prone horizontal push-up preview.
 
-## Update
-Back up your current `app.py`, then replace it with this package's `app.py`. Keep `requirements.txt` updated. Commit the files to GitHub and wait for Streamlit Community Cloud to redeploy.
+## Deploy
+1. Back up your existing `app.py`.
+2. Replace it with this package's `app.py` and keep `requirements.txt`.
+3. Commit and push the files to your GitHub repository.
+4. Wait for Streamlit Community Cloud to redeploy, then reload the app.
 
-The embedded 3D component loads Three.js from jsDelivr, so an internet connection and WebGL are required. The animation is a procedural instructional approximation, not motion-capture-verified biomechanics. For genuinely precise movement, use a professionally rigged anatomical model with reviewed animation clips.
+## Accuracy note
+The animation is a procedural teaching approximation, not motion-capture-validated biomechanics. Exercise-specific equipment props and professionally rigged, reviewed animation clips are still needed for truly exact demonstrations of every lift. Use a qualified coach for form checks, especially for loaded barbell movements.

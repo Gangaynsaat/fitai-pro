@@ -92,48 +92,60 @@ try {
  // Squat: hips/knees flex together; curl: elbows flex; push-up: torso lowers while elbows flex.
  let playing=true,phase=0,speed=1,last=performance.now();
  function motion(t){
-  const wave=(Math.sin(t*2*Math.PI)-(-1))/2; // 0..1
-  const flex=(1-Math.cos(t*2*Math.PI))/2; 
+  const flex=(1-Math.cos(t*2*Math.PI))/2;
   const ex=exercise.toLowerCase();
-  // reset all joint transforms each frame
-  torso.rotation.set(0,0,0);pelvis.rotation.set(0,0,0);
-  shoulders.forEach(({s,p})=>{p.rotation.set(0,0,0);});
-  elbows.forEach(({s,p})=>{p.rotation.set(0,0,0);});
-  hips.forEach(({s,p})=>{p.rotation.set(0,0,0);});
-  knees.forEach(({s,p})=>{p.rotation.set(0,0,0);});
-  if(ex.includes('squat') || ex.includes('hinge') || ex.includes('bridge')){
-    const bend=ex.includes('bridge')?flex*.85:flex*.95;
-    hips.forEach(({p,s})=>{p.rotation.z=s*(-bend*.22);});
-    knees.forEach(({p})=>{p.rotation.z=-bend*.95;});
-    pelvis.position.y=1.25-(ex.includes('bridge')?0: flex*.23);
-    torso.rotation.z=-flex*.18;
-    if(ex.includes('bridge')) pelvis.position.y=1.25+flex*.22;
-  } else if(ex.includes('push-up') || ex.includes('pushup')){
-    // Side-lying horizontal push-up pose, elbows bend and straighten together.
-    model.rotation.z=-Math.PI/2;
-    model.position.set(-.8,1.45,0);
-    torso.rotation.z=flex*.12;
-    shoulders.forEach(({s,p})=>{p.rotation.z=-.12;});
-    elbows.forEach(({p})=>{p.rotation.z=-flex*.95;});
-  } else if(ex.includes('curl')){
-    elbows.forEach(({p})=>{p.rotation.z=-flex*1.15;});
-    shoulders.forEach(({s,p})=>{p.rotation.z=s*.04;});
-  } else if(ex.includes('press') || ex.includes('extension')){
-    shoulders.forEach(({s,p})=>{p.rotation.z=-flex*.85;});
-    elbows.forEach(({p})=>{p.rotation.z=ex.includes('extension')?-.25-flex*.55:-.15;});
-  } else if(ex.includes('row')){
-    torso.rotation.z=.2;
-    shoulders.forEach(({s,p})=>{p.rotation.z=s*.12;});
-    elbows.forEach(({p})=>{p.rotation.z=-flex*.85;});
-  } else if(ex.includes('dead bug') || ex.includes('core')){
-    torso.rotation.z=.05;
-    hips.forEach(({p,s})=>{p.rotation.z=flex*.4;});
-    knees.forEach(({p})=>{p.rotation.z=-flex*.65;});
+  // Restore neutral pose each frame to avoid accumulating joint rotation.
+  model.rotation.set(0,0,0); model.position.set(0,0,0);
+  torso.rotation.set(0,0,0); pelvis.rotation.set(0,0,0); pelvis.position.set(0,1.25,0);
+  shoulders.forEach(({p})=>p.rotation.set(0,0,0));
+  elbows.forEach(({p})=>p.rotation.set(0,0,0));
+  hips.forEach(({p})=>p.rotation.set(0,0,0));
+  knees.forEach(({p})=>p.rotation.set(0,0,0));
+  // Each family is a teaching approximation; exercise names select the closest movement pattern.
+  if(ex.includes('push-up') || ex.includes('push up') || ex.includes('pushup') || ex.includes('bench press') || ex.includes('chest press')){
+    // Rotate the full body into a prone plank: head/chest at one end, legs at the other.
+    model.rotation.z=-Math.PI/2; model.position.set(-.05,1.30,0);
+    // Elbows flex on the lowering phase; chest moves toward the floor and returns as one unit.
+    elbows.forEach(({p})=>{p.rotation.z=-(.08+flex*.95);});
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*.02;});
+    pelvis.position.y=1.25-flex*.035; torso.rotation.z=flex*.015;
+  } else if(ex.includes('squat') || ex.includes('lunge') || ex.includes('leg press')){
+    const bend=flex*(ex.includes('lunge')?0.72:0.95);
+    hips.forEach(({p,s})=>{p.rotation.z=s*(-bend*.18);});
+    knees.forEach(({p})=>{p.rotation.z=-bend*.88;});
+    pelvis.position.y=1.25-flex*.22; torso.rotation.z=-flex*.12;
+  } else if(ex.includes('deadlift') || ex.includes('romanian') || ex.includes('good morning') || ex.includes('hip hinge')){
+    hips.forEach(({p,s})=>{p.rotation.z=s*(-flex*.16);});
+    knees.forEach(({p})=>{p.rotation.z=-flex*.20;});
+    torso.rotation.z=-flex*.42; pelvis.position.y=1.25-flex*.04;
+    elbows.forEach(({p})=>{p.rotation.z=-.05;});
+  } else if(ex.includes('bridge') || ex.includes('hip thrust')){
+    pelvis.position.y=1.25+flex*.18; torso.rotation.z=flex*.12;
+    knees.forEach(({p})=>{p.rotation.z=-.5;});
+  } else if(ex.includes('curl') || ex.includes('chin-up') || ex.includes('chin up')){
+    elbows.forEach(({p})=>{p.rotation.z=-flex*1.12;});
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*(ex.includes('chin')?-.2:.03);});
+  } else if(ex.includes('row') || ex.includes('pulldown') || ex.includes('pull-up') || ex.includes('pull up')){
+    torso.rotation.z=ex.includes('row')?-.18:0;
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*(.12-flex*.36);});
+    elbows.forEach(({p})=>{p.rotation.z=-flex*.82;});
+  } else if(ex.includes('overhead press') || ex.includes('shoulder press') || ex.includes('lateral raise') || ex.includes('front raise') || ex.includes('fly') || ex.includes('pullover')){
+    const raise=ex.includes('raise')||ex.includes('fly');
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*(raise?flex*.82:-flex*.78);});
+    elbows.forEach(({p})=>{p.rotation.z=ex.includes('fly')?-.22:-(ex.includes('press')?.18:0);});
+  } else if(ex.includes('triceps') || ex.includes('pushdown') || ex.includes('skull crusher')){
+    shoulders.forEach(({p})=>{p.rotation.z=-.18;});
+    elbows.forEach(({p})=>{p.rotation.z=-(.12+flex*.62);});
+  } else if(ex.includes('crunch') || ex.includes('sit-up') || ex.includes('sit up') || ex.includes('dead bug') || ex.includes('leg raise') || ex.includes('plank')){
+    torso.rotation.z=flex*.20;
+    hips.forEach(({p})=>{p.rotation.z=ex.includes('leg raise')||ex.includes('dead bug')?flex*.45:0;});
+    knees.forEach(({p})=>{p.rotation.z=ex.includes('dead bug')?-flex*.55:0;});
   } else if(ex.includes('calf')){
-    knees.forEach(({p})=>{p.rotation.z=0;});
-    model.position.y=Math.sin(t*2*Math.PI)*.09;
+    model.position.y=Math.sin(t*2*Math.PI)*.06;
   } else {
-    elbows.forEach(({p})=>{p.rotation.z=-flex*.5;});
+    // General controlled accessory movement; avoid exaggerated full-body swinging.
+    elbows.forEach(({p})=>{p.rotation.z=-flex*.38;});
+    shoulders.forEach(({p})=>{p.rotation.z=-flex*.12;});
   }
  }
  function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.05);last=now;if(playing)phase+=dt*speed;motion(phase);controls.update();renderer.render(scene,camera);}
@@ -266,18 +278,74 @@ def fitness_3d_scene():
 
 
 # --------------------------- Animated 3D trainer ---------------------------
-MUSCLE_MOVES = {
-    "Chest": {"exercise":"Push-up pattern", "primary":"Chest, triceps, front shoulders", "sets":"2–3 comfortable sets", "reps":"6–12 controlled reps", "tip":"Keep your body in one steady line; use a wall or bench incline to make it easier."},
-    "Back": {"exercise":"Bent-over row pattern", "primary":"Upper back, lats, rear shoulders, biceps", "sets":"2–3 comfortable sets", "reps":"8–12 controlled reps", "tip":"Hinge at the hips with a neutral back. Use a very light load or a no-weight practice first."},
-    "Shoulders": {"exercise":"Overhead press pattern", "primary":"Shoulders, triceps, upper chest", "sets":"2–3 comfortable sets", "reps":"6–12 controlled reps", "tip":"Keep ribs relaxed and move only through a comfortable range. No need to use heavy weights."},
-    "Biceps": {"exercise":"Biceps curl pattern", "primary":"Biceps and forearms", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Keep elbows near your sides and avoid swinging your torso."},
-    "Triceps": {"exercise":"Triceps extension pattern", "primary":"Triceps", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Keep upper arms steady and stop if elbows or shoulders hurt."},
-    "Legs / Quads": {"exercise":"Bodyweight squat", "primary":"Quadriceps, hamstrings, glutes", "sets":"2–3 comfortable sets", "reps":"8–12 controlled reps", "tip":"Sit hips back, keep feet stable, and use a chair target if helpful."},
-    "Glutes": {"exercise":"Glute bridge pattern", "primary":"Glutes and hamstrings", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Lift hips smoothly without forcing your lower back into an arch."},
-    "Core / Abs": {"exercise":"Standing core brace / crunch pattern", "primary":"Abdominals and trunk stabilisers", "sets":"2 comfortable sets", "reps":"6–10 slow reps", "tip":"Breathe normally and move gently; stop if you feel back or neck pain."},
-    "Calves": {"exercise":"Calf raise", "primary":"Calves and ankle stabilisers", "sets":"2 comfortable sets", "reps":"10–15 controlled reps", "tip":"Hold a stable support if needed and rise only as high as comfortable."},
-    "Full body": {"exercise":"Bodyweight squat pattern", "primary":"Legs, glutes, trunk and balance", "sets":"2 easy sets", "reps":"6–10 controlled reps", "tip":"Use a comfortable range, steady breathing, and rest when needed."},
+EXERCISES = {
+    "Bodyweight": {
+        "Chest": ["Push-up", "Incline push-up", "Knee push-up", "Decline push-up", "Wide-grip push-up", "Close-grip push-up", "Pike push-up"],
+        "Back": ["Superman raise", "Bird dog", "Inverted row", "Pull-up", "Chin-up", "Scapular pull-up"],
+        "Shoulders": ["Pike push-up", "Arm circles", "Wall slide", "Plank shoulder tap"],
+        "Biceps": ["Chin-up", "Inverted row"],
+        "Triceps": ["Close-grip push-up", "Bench dip", "Diamond push-up"],
+        "Legs / Quads": ["Bodyweight squat", "Reverse lunge", "Forward lunge", "Split squat", "Step-up", "Wall sit", "Jump squat"],
+        "Glutes": ["Glute bridge", "Single-leg glute bridge", "Hip thrust", "Donkey kick", "Fire hydrant"],
+        "Hamstrings": ["Glute bridge", "Single-leg glute bridge", "Hip hinge", "Nordic curl"],
+        "Core / Abs": ["Plank", "Side plank", "Crunch", "Bicycle crunch", "Reverse crunch", "Leg raise", "Dead bug", "Mountain climber"],
+        "Calves": ["Standing calf raise", "Single-leg calf raise"],
+        "Full body": ["Burpee", "Bear crawl", "Mountain climber", "Bodyweight squat"]
+    },
+    "Dumbbell": {
+        "Chest": ["Dumbbell bench press", "Dumbbell incline press", "Dumbbell floor press", "Dumbbell chest fly", "Dumbbell squeeze press", "Dumbbell pullover"],
+        "Back": ["One-arm dumbbell row", "Chest-supported dumbbell row", "Dumbbell bent-over row", "Dumbbell reverse fly", "Dumbbell pullover", "Dumbbell shrug"],
+        "Shoulders": ["Dumbbell shoulder press", "Seated dumbbell press", "Dumbbell lateral raise", "Dumbbell front raise", "Dumbbell rear-delt fly", "Arnold press"],
+        "Biceps": ["Dumbbell biceps curl", "Hammer curl", "Incline dumbbell curl", "Concentration curl", "Alternating dumbbell curl", "Zottman curl"],
+        "Triceps": ["Overhead dumbbell triceps extension", "Dumbbell kickback", "Dumbbell skull crusher", "Close-grip dumbbell press"],
+        "Legs / Quads": ["Goblet squat", "Dumbbell split squat", "Dumbbell reverse lunge", "Dumbbell step-up", "Dumbbell walking lunge"],
+        "Glutes": ["Dumbbell hip thrust", "Dumbbell Romanian deadlift", "Dumbbell reverse lunge", "Dumbbell sumo squat"],
+        "Hamstrings": ["Dumbbell Romanian deadlift", "Dumbbell single-leg deadlift", "Dumbbell good morning"],
+        "Core / Abs": ["Dumbbell Russian twist", "Dumbbell sit-up", "Dumbbell side bend", "Dumbbell wood chop"],
+        "Calves": ["Dumbbell standing calf raise", "Dumbbell seated calf raise"],
+        "Full body": ["Dumbbell thruster", "Dumbbell clean and press", "Dumbbell farmer carry"]
+    },
+    "Barbell": {
+        "Chest": ["Barbell bench press", "Barbell incline bench press", "Barbell close-grip bench press", "Barbell floor press"],
+        "Back": ["Barbell bent-over row", "Pendlay row", "Barbell shrug", "Barbell rack pull"],
+        "Shoulders": ["Barbell overhead press", "Push press", "Behind-the-neck press (advanced; avoid if uncomfortable)"],
+        "Biceps": ["Barbell curl", "EZ-bar curl", "Reverse barbell curl"],
+        "Triceps": ["Close-grip barbell bench press", "EZ-bar skull crusher", "Barbell lying triceps extension"],
+        "Legs / Quads": ["Barbell back squat", "Barbell front squat", "Barbell box squat", "Barbell split squat"],
+        "Glutes": ["Barbell hip thrust", "Barbell squat", "Barbell sumo deadlift"],
+        "Hamstrings": ["Barbell Romanian deadlift", "Barbell deadlift", "Good morning"],
+        "Core / Abs": ["Barbell rollout", "Landmine rotation"],
+        "Calves": ["Barbell standing calf raise"],
+        "Full body": ["Barbell deadlift", "Barbell clean pull", "Barbell thruster"]
+    },
+    "Cable / Machine": {
+        "Chest": ["Cable chest fly", "Cable crossover", "Standing cable chest press", "Low-to-high cable fly", "High-to-low cable fly"],
+        "Back": ["Lat pulldown", "Seated cable row", "Straight-arm cable pulldown", "Single-arm cable row", "Face pull"],
+        "Shoulders": ["Cable lateral raise", "Cable front raise", "Cable rear-delt fly", "Cable upright row", "Face pull"],
+        "Biceps": ["Cable biceps curl", "Rope hammer curl", "High cable curl", "Single-arm cable curl"],
+        "Triceps": ["Cable triceps pushdown", "Rope pushdown", "Overhead cable triceps extension", "Single-arm cable extension"],
+        "Legs / Quads": ["Leg press", "Leg extension", "Cable squat"],
+        "Glutes": ["Cable kickback", "Cable pull-through", "Hip abduction machine"],
+        "Hamstrings": ["Seated leg curl", "Lying leg curl", "Cable pull-through"],
+        "Core / Abs": ["Cable crunch", "Pallof press", "Cable wood chop", "Cable rotation"],
+        "Calves": ["Seated calf raise", "Standing calf raise machine"],
+        "Full body": ["Cable squat to row", "Cable lift", "Sled push"]
+    }
 }
+
+EXERCISE_INFO = {
+    "Push-up": ("Chest, triceps, front shoulders and trunk", "2–3 sets", "6–12 controlled reps", "Keep ears, shoulders, hips and ankles in one line. Lower the chest between the hands; elbows travel diagonally back, then press the floor away."),
+    "Incline push-up": ("Chest, triceps and shoulders", "2–3 sets", "6–12 controlled reps", "Use a stable bench or wall, keep the body straight and lower the chest toward the support."),
+    "Dumbbell bench press": ("Chest, triceps and front shoulders", "2–3 sets", "8–12 controlled reps", "Use a stable bench and manageable weights. Lower with control; a spotter is sensible for challenging loads."),
+    "Barbell bench press": ("Chest, triceps and front shoulders", "2–3 sets", "6–10 controlled reps", "Use safety arms or a competent spotter. Keep wrists stacked and lower under control; do not test maximal loads alone."),
+    "Lat pulldown": ("Lats, upper back and biceps", "2–3 sets", "8–12 controlled reps", "Pull the bar toward the upper chest without swinging or pulling behind the neck."),
+    "Barbell deadlift": ("Glutes, hamstrings, back and trunk", "2–3 technique sets", "5–8 controlled reps", "Learn the hip hinge with a coach and light load first. Keep the bar close and stop if you feel pain."),
+    "Bodyweight squat": ("Quadriceps, glutes and trunk", "2–3 sets", "8–12 controlled reps", "Keep feet planted, knees tracking in line with toes, and use a comfortable depth."),
+    "Dumbbell biceps curl": ("Biceps and forearms", "2 sets", "8–12 controlled reps", "Keep elbows near your sides and avoid swinging the torso."),
+    "Cable triceps pushdown": ("Triceps", "2 sets", "10–15 controlled reps", "Keep elbows close to your sides and move the forearms smoothly."),
+}
+DEFAULT_INFO = ("Target muscles and supporting stabilisers", "2 comfortable sets", "8–12 controlled reps", "Start with a light or manageable resistance, practise the movement slowly, and use a pain-free range. Ask a qualified coach to check unfamiliar weighted exercises.")
+
 
 
 def trainer_points(muscle, phase):
@@ -472,26 +540,29 @@ elif page == "Workout Planner":
 
 # --------------------------- 3D Trainer ---------------------------
 elif page == "3D Trainer":
-    st.markdown('<div class="hero"><div class="eyebrow">Motion lab · muscle anatomy</div><h1>3D TRAINER STUDIO</h1><p>Muscular articulated figure with exercise-specific movement previews.</p></div>', unsafe_allow_html=True)
-    muscle = st.selectbox("Choose a muscle group", list(MUSCLE_MOVES.keys()))
-    move = MUSCLE_MOVES[muscle]
+    st.markdown('<div class="hero"><div class="eyebrow">Motion lab · bodyweight + resistance training</div><h1>3D TRAINER STUDIO</h1><p>Choose an exercise family, target muscle and movement. Preview the movement and review technique cues.</p></div>', unsafe_allow_html=True)
+    family = st.selectbox("Equipment / exercise family", list(EXERCISES.keys()), index=0)
+    muscle = st.selectbox("Target muscle group", list(EXERCISES[family].keys()))
+    exercise = st.selectbox("Choose exercise", EXERCISES[family][muscle])
+    primary, sets, reps, tip = EXERCISE_INFO.get(exercise, DEFAULT_INFO)
     left, right = st.columns([1.25, 1])
     with left:
         st.subheader(f"Muscular 3D figure · {muscle}")
-        st.caption("Blue identifies the selected target region. Use Play/Pause, adjust speed, drag to rotate, and scroll to zoom.")
-        accurate_motion_viewer(muscle, move["exercise"])
+        st.caption("Blue highlights the selected target region. Drag to rotate; scroll to zoom; use the controls to pause, reset or adjust speed.")
+        accurate_motion_viewer(muscle, exercise)
     with right:
-        st.subheader(move["exercise"])
-        st.markdown(f"**Main muscles:** {move['primary']}")
-        st.markdown(f"**Suggested starting volume:** {move['sets']} · {move['reps']}")
+        st.subheader(exercise)
+        st.markdown(f"**Equipment:** {family}")
+        st.markdown(f"**Main muscles:** {primary}")
+        st.markdown(f"**Suggested practice:** {sets} · {reps}")
         st.markdown("#### Technique cue")
-        st.info(move["tip"])
-        st.markdown("#### Safe practice")
-        st.write("Warm up first, use a comfortable range, move under control, and stop if you feel pain or dizziness.")
+        st.info(tip)
+        st.markdown("#### Safety and form")
+        st.write("Warm up first, begin with manageable resistance, and prioritise controlled technique over load. Use a qualified coach or spotter for unfamiliar or challenging barbell lifts. Stop if you feel pain, dizziness or unusual shortness of breath.")
         if st.button("Log this movement", type="primary", use_container_width=True):
-            execute("INSERT INTO workouts (workout_date, workout_name, duration_min, notes) VALUES (?, ?, ?, ?)", (date.today().isoformat(), f"{muscle}: {move['exercise']}", 10, "Logged from 3D Trainer Studio"))
+            execute("INSERT INTO workouts (workout_date, workout_name, duration_min, notes) VALUES (?, ?, ?, ?)", (date.today().isoformat(), f"{family} · {muscle}: {exercise}", 10, "Logged from 3D Trainer Studio"))
             st.success("Movement added to your workout history.")
-    st.caption("Animation is a simplified instructional approximation, not motion-capture validation or a substitute for coaching.")
+    st.caption("Important: the 3D motion is a procedural educational approximation, not motion-capture-verified biomechanics. The library is broad, but the current mannequin does not yet render a distinct physical prop for every dumbbell, barbell or cable exercise. Use coaching and reference demonstrations for exact setup and form.")
 
 # --------------------------- Workout Logger ---------------------------
 elif page == "Workout Logger":
