@@ -1,21 +1,8 @@
-# FITAI PRO 3D — Made by Souvik Dey
+# FITAI PRO — Trainer-only upgrade
 
-A Streamlit fitness dashboard with workout logging, balanced meal ideas, progress and hydration tracking, a no-API rule-based coach, and an interactive animated 3D trainer motion lab.
+This package preserves the existing FITAI PRO pages and replaces only the 3D Trainer page with a muscular articulated figure and exercise-specific movement previews. Blue highlights mark the selected muscle group.
 
-## Run locally
+## Update
+Back up your current `app.py`, then replace it with this package's `app.py`. Keep `requirements.txt` updated. Commit the files to GitHub and wait for Streamlit Community Cloud to redeploy.
 
-```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-## 3D Trainer Studio
-Choose Chest, Back, Shoulders, Biceps, Triceps, Legs/Quads, Glutes, Core/Abs, Calves, or Full body. The articulated mannequin is a simplified educational motion preview with Play/Pause and a phase slider. It is not a recorded workout video, medical anatomy model, or substitute for professional technique guidance.
-
-## Notes
-- The built-in fitness coach does not require an OpenAI API key.
-- SQLite stores activity on the app's local filesystem. On hosted platforms, local files may not be persistent across rebuilds/redeployments.
-- This app provides general fitness education, not medical advice.
+The embedded 3D component loads Three.js from jsDelivr, so an internet connection and WebGL are required. The animation is a procedural instructional approximation, not motion-capture-verified biomechanics. For genuinely precise movement, use a professionally rigged anatomical model with reviewed animation clips.

@@ -18,6 +18,137 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
+def accurate_motion_viewer(muscle, exercise):
+    """Embedded articulated trainer. Motion is a simplified teaching animation, not medical-grade motion capture."""
+    import json
+    muscle_json = json.dumps(muscle)
+    exercise_json = json.dumps(exercise)
+    html = r"""
+<div id="fitai-motion" style="height:610px;width:100%;border-radius:18px;overflow:hidden;background:#081321;border:1px solid #243b50;position:relative">
+ <div id="fitai-status" style="position:absolute;top:12px;left:14px;z-index:5;color:#d9e9f7;font:13px system-ui">Preparing 3D trainer…</div>
+ <div style="position:absolute;bottom:12px;left:14px;right:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:5">
+  <button id="fitai-play" style="padding:9px 14px;border:0;border-radius:9px;background:#159cff;color:#fff;font-weight:700;cursor:pointer">Ⅱ Pause</button>
+  <button id="fitai-reset" style="padding:9px 14px;border:1px solid #47627b;border-radius:9px;background:#14273a;color:#fff;cursor:pointer">↺ Reset</button>
+  <label style="color:#d9e9f7;display:flex;align-items:center;gap:8px;font:12px system-ui">Speed <select id="fitai-speed" style="padding:7px;background:#14273a;color:#fff;border:1px solid #47627b;border-radius:8px"><option value=".65">Slow</option><option value="1" selected>Normal</option><option value="1.25">Fast</option></select></label>
+ </div>
+</div>
+<script type="module">
+const root=document.getElementById('fitai-motion');
+const muscle=__MUSCLE__;
+const exercise=__EXERCISE__;
+try {
+ const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js/+esm');
+ const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js/+esm');
+ const scene=new THREE.Scene(); scene.background=new THREE.Color('#081321');
+ const camera=new THREE.PerspectiveCamera(35,root.clientWidth/root.clientHeight,.1,100); camera.position.set(0,1.8,7.8);
+ const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(root.clientWidth,root.clientHeight); renderer.outputColorSpace=THREE.SRGBColorSpace; root.appendChild(renderer.domElement);
+ const controls=new OrbitControls(camera,renderer.domElement); controls.target.set(0,1.45,0); controls.enableDamping=true; controls.minDistance=5; controls.maxDistance=11;
+ scene.add(new THREE.HemisphereLight(0xcce8ff,0x241a1b,2.0));
+ const light=new THREE.DirectionalLight(0xffffff,2.7); light.position.set(3,5,5); scene.add(light);
+ const blueLight=new THREE.PointLight(0x159cff,28); blueLight.position.set(-3,2,2); scene.add(blueLight);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(2.6,64),new THREE.MeshStandardMaterial({color:0x13283b,roughness:.9})); floor.rotation.x=-Math.PI/2; floor.position.y=-.04; scene.add(floor);
+ const skin=new THREE.MeshStandardMaterial({color:0xb97860,roughness:.56});
+ const muscleMat=new THREE.MeshStandardMaterial({color:0x9e453e,roughness:.48});
+ const activeMat=new THREE.MeshStandardMaterial({color:0x159cff,emissive:0x006cff,emissiveIntensity:.55,roughness:.35});
+ const dark=new THREE.MeshStandardMaterial({color:0x2b3e52,roughness:.65});
+ const model=new THREE.Group(); scene.add(model);
+ function sphere(parent,name,pos,scale,mat,active=false){const m=new THREE.Mesh(new THREE.SphereGeometry(1,24,18),mat);m.name=name;m.position.set(...pos);m.scale.set(...scale);m.userData.active=active;parent.add(m);return m;}
+ function bone(parent,name,a,b,r1,r2,mat){const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),d=vb.clone().sub(va);const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),16),mat);m.name=name;m.position.copy(va).add(vb).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());parent.add(m);m.userData.a=new THREE.Vector3(...a);m.userData.b=new THREE.Vector3(...b);m.userData.r1=r1;m.userData.r2=r2;return m;}
+ // articulated pivots are used so joint motion is visible, with muscle volumes attached to body segments
+ const pelvis=new THREE.Group(); pelvis.position.set(0,1.25,0);model.add(pelvis);
+ sphere(pelvis,'pelvis',[0,0,0],[.42,.25,.26],skin);
+ const torso=new THREE.Group(); torso.position.set(0,.18,0);pelvis.add(torso);
+ sphere(torso,'abdominal wall',[0,.35,0],[.43,.53,.25],muscleMat);
+ sphere(torso,'left pec',[-.23,.72,.18],[.26,.22,.12],muscleMat,muscle==='Chest');
+ sphere(torso,'right pec',[.23,.72,.18],[.26,.22,.12],muscleMat,muscle==='Chest');
+ for(let i=0;i<3;i++){sphere(torso,'left abs',[-.105,.43-i*.15,.22],[.095,.065,.04],muscleMat,muscle==='Abs / Core');sphere(torso,'right abs',[.105,.43-i*.15,.22],[.095,.065,.04],muscleMat,muscle==='Abs / Core');}
+ sphere(torso,'left lat',[-.34,.48,-.15],[.18,.38,.12],muscleMat,muscle==='Back');sphere(torso,'right lat',[.34,.48,-.15],[.18,.38,.12],muscleMat,muscle==='Back');
+ sphere(torso,'neck',[0,.93,0],[.14,.19,.14],skin);sphere(torso,'head',[0,1.22,0],[.27,.34,.25],skin);
+ const shoulders=[],elbows=[],hips=[],knees=[],ankles=[],arms=[],forearms=[],thighs=[],shins=[],hands=[],feet=[],delts=[],biceps=[],triceps=[],quads=[],hams=[],calves=[];
+ for(const s of [-1,1]){
+  const sh=new THREE.Group();sh.position.set(s*.49,.76,0);torso.add(sh); shoulders.push({s,p:sh});
+  sphere(sh,'deltoid',[0,0,0],[.2,.22,.2],muscleMat,muscle==='Shoulders');
+  const upper=sphere(sh,'upper arm',[s*.02,-.29,0],[.13,.3,.13],skin);
+  sphere(sh,'biceps',[s*.015,-.29,.105],[.105,.22,.075],muscleMat,muscle==='Biceps');
+  sphere(sh,'triceps',[s*.015,-.29,-.09],[.1,.22,.065],muscleMat,muscle==='Triceps');
+  const elbow=new THREE.Group();elbow.position.set(0,-.55,0);sh.add(elbow);elbows.push({s,p:elbow});
+  sphere(elbow,'elbow',[0,0,0],[.105,.11,.105],skin);
+  sphere(elbow,'forearm',[0,-.25,.015],[.095,.27,.095],skin);
+  sphere(elbow,'hand',[0,-.51,.04],[.09,.12,.055],skin);hands.push({s,p:elbow});
+  const hip=new THREE.Group();hip.position.set(s*.22,-.08,0);pelvis.add(hip);hips.push({s,p:hip});
+  sphere(hip,'quad',[0,-.34,.105],[.16,.37,.13],muscleMat,muscle==='Quads');
+  sphere(hip,'hamstring',[0,-.34,-.095],[.14,.36,.1],muscleMat,muscle==='Hamstrings');
+  const knee=new THREE.Group();knee.position.set(0,-.67,0);hip.add(knee);knees.push({s,p:knee});
+  sphere(knee,'knee',[0,0,0],[.12,.12,.12],skin);
+  sphere(knee,'calf',[0,-.28,-.075],[.12,.28,.11],muscleMat,muscle==='Calves');
+  sphere(knee,'shin',[0,-.27,.01],[.085,.29,.085],skin);
+  sphere(knee,'foot',[0,-.56,.12],[.12,.08,.23],skin);
+ }
+ // target regions blue, while other anatomy remains warm-toned
+ model.traverse(o=>{if(o.isMesh && (o.name.toLowerCase().includes('pec') && muscle==='Chest' || o.name.toLowerCase().includes('abs') && muscle==='Abs / Core' || o.name.toLowerCase().includes('lat') && muscle==='Back' || o.name==='deltoid' && muscle==='Shoulders' || o.name==='biceps' && muscle==='Biceps' || o.name==='triceps' && muscle==='Triceps' || o.name==='quad' && muscle==='Quads' || o.name==='hamstring' && muscle==='Hamstrings' || o.name==='calf' && muscle==='Calves')) o.material=activeMat;});
+ // movement presets: each animation changes joint angles through a repeatable controlled range.
+ // Squat: hips/knees flex together; curl: elbows flex; push-up: torso lowers while elbows flex.
+ let playing=true,phase=0,speed=1,last=performance.now();
+ function motion(t){
+  const wave=(Math.sin(t*2*Math.PI)-(-1))/2; // 0..1
+  const flex=(1-Math.cos(t*2*Math.PI))/2; 
+  const ex=exercise.toLowerCase();
+  // reset all joint transforms each frame
+  torso.rotation.set(0,0,0);pelvis.rotation.set(0,0,0);
+  shoulders.forEach(({s,p})=>{p.rotation.set(0,0,0);});
+  elbows.forEach(({s,p})=>{p.rotation.set(0,0,0);});
+  hips.forEach(({s,p})=>{p.rotation.set(0,0,0);});
+  knees.forEach(({s,p})=>{p.rotation.set(0,0,0);});
+  if(ex.includes('squat') || ex.includes('hinge') || ex.includes('bridge')){
+    const bend=ex.includes('bridge')?flex*.85:flex*.95;
+    hips.forEach(({p,s})=>{p.rotation.z=s*(-bend*.22);});
+    knees.forEach(({p})=>{p.rotation.z=-bend*.95;});
+    pelvis.position.y=1.25-(ex.includes('bridge')?0: flex*.23);
+    torso.rotation.z=-flex*.18;
+    if(ex.includes('bridge')) pelvis.position.y=1.25+flex*.22;
+  } else if(ex.includes('push-up') || ex.includes('pushup')){
+    // Side-lying horizontal push-up pose, elbows bend and straighten together.
+    model.rotation.z=-Math.PI/2;
+    model.position.set(-.8,1.45,0);
+    torso.rotation.z=flex*.12;
+    shoulders.forEach(({s,p})=>{p.rotation.z=-.12;});
+    elbows.forEach(({p})=>{p.rotation.z=-flex*.95;});
+  } else if(ex.includes('curl')){
+    elbows.forEach(({p})=>{p.rotation.z=-flex*1.15;});
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*.04;});
+  } else if(ex.includes('press') || ex.includes('extension')){
+    shoulders.forEach(({s,p})=>{p.rotation.z=-flex*.85;});
+    elbows.forEach(({p})=>{p.rotation.z=ex.includes('extension')?-.25-flex*.55:-.15;});
+  } else if(ex.includes('row')){
+    torso.rotation.z=.2;
+    shoulders.forEach(({s,p})=>{p.rotation.z=s*.12;});
+    elbows.forEach(({p})=>{p.rotation.z=-flex*.85;});
+  } else if(ex.includes('dead bug') || ex.includes('core')){
+    torso.rotation.z=.05;
+    hips.forEach(({p,s})=>{p.rotation.z=flex*.4;});
+    knees.forEach(({p})=>{p.rotation.z=-flex*.65;});
+  } else if(ex.includes('calf')){
+    knees.forEach(({p})=>{p.rotation.z=0;});
+    model.position.y=Math.sin(t*2*Math.PI)*.09;
+  } else {
+    elbows.forEach(({p})=>{p.rotation.z=-flex*.5;});
+  }
+ }
+ function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.05);last=now;if(playing)phase+=dt*speed;motion(phase);controls.update();renderer.render(scene,camera);}
+ requestAnimationFrame(loop);
+ document.getElementById('fitai-status').textContent='3D muscular trainer • drag to rotate • scroll to zoom';
+ document.getElementById('fitai-play').addEventListener('click',e=>{playing=!playing;e.currentTarget.textContent=playing?'Ⅱ Pause':'▶ Play';});
+ document.getElementById('fitai-reset').addEventListener('click',()=>{phase=0;model.position.set(0,0,0);model.rotation.set(0,0,0);});
+ document.getElementById('fitai-speed').addEventListener('change',e=>speed=Number(e.target.value)||1);
+ const ro=new ResizeObserver(()=>{camera.aspect=root.clientWidth/root.clientHeight;camera.updateProjectionMatrix();renderer.setSize(root.clientWidth,root.clientHeight);});ro.observe(root);
+} catch(err){document.getElementById('fitai-status').textContent='3D trainer could not load. Check internet connection and WebGL support.';console.error(err);}
+</script>
+"""
+    html = html.replace("__MUSCLE__", muscle_json).replace("__EXERCISE__", exercise_json)
+    components.html(html, height=625, scrolling=False)
+
+
 # --------------------------- Database ---------------------------
 def get_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -340,34 +471,26 @@ elif page == "Workout Planner":
 
 # --------------------------- 3D Trainer ---------------------------
 elif page == "3D Trainer":
-    st.markdown('<div class="hero"><div class="eyebrow">Motion lab · interactive exercise guide</div><h1>3D TRAINER STUDIO</h1><p>Explore a full-body articulated trainer and preview movement patterns for major muscle groups.</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero"><div class="eyebrow">Motion lab · muscle anatomy</div><h1>3D TRAINER STUDIO</h1><p>Muscular articulated figure with exercise-specific movement previews.</p></div>', unsafe_allow_html=True)
     muscle = st.selectbox("Choose a muscle group", list(MUSCLE_MOVES.keys()))
     move = MUSCLE_MOVES[muscle]
     left, right = st.columns([1.25, 1])
     with left:
-        st.subheader(f"Animated 3D preview · {muscle}")
-        st.caption("Use ▶ Play motion, Ⅱ Pause, or the phase slider. Drag the figure to rotate; scroll to zoom.")
-        st.plotly_chart(animated_trainer(muscle), use_container_width=True, config={"displaylogo":False,"scrollZoom":True})
+        st.subheader(f"Muscular 3D figure · {muscle}")
+        st.caption("Blue identifies the selected target region. Use Play/Pause, adjust speed, drag to rotate, and scroll to zoom.")
+        accurate_motion_viewer(muscle, move["exercise"])
     with right:
         st.subheader(move["exercise"])
         st.markdown(f"**Main muscles:** {move['primary']}")
         st.markdown(f"**Suggested starting volume:** {move['sets']} · {move['reps']}")
         st.markdown("#### Technique cue")
         st.info(move["tip"])
-        st.markdown("#### Session checklist")
-        st.write("1. Warm up with easy movement.\n2. Practise the movement slowly before adding resistance.\n3. Breathe continuously and take breaks.\n4. Stop if you feel pain, dizziness, or unusual symptoms.")
+        st.markdown("#### Safe practice")
+        st.write("Warm up first, use a comfortable range, move under control, and stop if you feel pain or dizziness.")
         if st.button("Log this movement", type="primary", use_container_width=True):
             execute("INSERT INTO workouts (workout_date, workout_name, duration_min, notes) VALUES (?, ?, ?, ?)", (date.today().isoformat(), f"{muscle}: {move['exercise']}", 10, "Logged from 3D Trainer Studio"))
-            st.success("Movement added to your workout history as a 10-minute practice session.")
-    st.divider()
-    st.subheader("All muscle groups")
-    cards = st.columns(3)
-    for i, (group, info) in enumerate(MUSCLE_MOVES.items()):
-        with cards[i % 3]:
-            st.markdown(f"**{group}**")
-            st.caption(info["exercise"])
-            st.write(info["primary"])
-    st.warning("These are simplified animated motion previews, not clinical anatomy models or recorded workout videos. Ask a qualified coach to check technique in person when learning unfamiliar movements.")
+            st.success("Movement added to your workout history.")
+    st.caption("Animation is a simplified instructional approximation, not motion-capture validation or a substitute for coaching.")
 
 # --------------------------- Workout Logger ---------------------------
 elif page == "Workout Logger":
