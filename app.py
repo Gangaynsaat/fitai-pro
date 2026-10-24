@@ -133,6 +133,104 @@ def fitness_3d_scene():
     return fig
 
 
+# --------------------------- Animated 3D trainer ---------------------------
+MUSCLE_MOVES = {
+    "Chest": {"exercise":"Push-up pattern", "primary":"Chest, triceps, front shoulders", "sets":"2–3 comfortable sets", "reps":"6–12 controlled reps", "tip":"Keep your body in one steady line; use a wall or bench incline to make it easier."},
+    "Back": {"exercise":"Bent-over row pattern", "primary":"Upper back, lats, rear shoulders, biceps", "sets":"2–3 comfortable sets", "reps":"8–12 controlled reps", "tip":"Hinge at the hips with a neutral back. Use a very light load or a no-weight practice first."},
+    "Shoulders": {"exercise":"Overhead press pattern", "primary":"Shoulders, triceps, upper chest", "sets":"2–3 comfortable sets", "reps":"6–12 controlled reps", "tip":"Keep ribs relaxed and move only through a comfortable range. No need to use heavy weights."},
+    "Biceps": {"exercise":"Biceps curl pattern", "primary":"Biceps and forearms", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Keep elbows near your sides and avoid swinging your torso."},
+    "Triceps": {"exercise":"Triceps extension pattern", "primary":"Triceps", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Keep upper arms steady and stop if elbows or shoulders hurt."},
+    "Legs / Quads": {"exercise":"Bodyweight squat", "primary":"Quadriceps, hamstrings, glutes", "sets":"2–3 comfortable sets", "reps":"8–12 controlled reps", "tip":"Sit hips back, keep feet stable, and use a chair target if helpful."},
+    "Glutes": {"exercise":"Glute bridge pattern", "primary":"Glutes and hamstrings", "sets":"2 comfortable sets", "reps":"8–12 controlled reps", "tip":"Lift hips smoothly without forcing your lower back into an arch."},
+    "Core / Abs": {"exercise":"Standing core brace / crunch pattern", "primary":"Abdominals and trunk stabilisers", "sets":"2 comfortable sets", "reps":"6–10 slow reps", "tip":"Breathe normally and move gently; stop if you feel back or neck pain."},
+    "Calves": {"exercise":"Calf raise", "primary":"Calves and ankle stabilisers", "sets":"2 comfortable sets", "reps":"10–15 controlled reps", "tip":"Hold a stable support if needed and rise only as high as comfortable."},
+    "Full body": {"exercise":"Bodyweight squat pattern", "primary":"Legs, glutes, trunk and balance", "sets":"2 easy sets", "reps":"6–10 controlled reps", "tip":"Use a comfortable range, steady breathing, and rest when needed."},
+}
+
+
+def trainer_points(muscle, phase):
+    """Return a simple full-body 3D articulated mannequin pose for a motion preview."""
+    import math
+    a = math.sin(phase)
+    pts = {
+        "head": (0, 0, 3.35), "neck": (0, 0, 3.02), "shoulderL": (-0.43, 0, 2.82),
+        "shoulderR": (0.43, 0, 2.82), "elbowL": (-0.62, 0, 2.35), "elbowR": (0.62, 0, 2.35),
+        "handL": (-0.67, 0, 1.95), "handR": (0.67, 0, 1.95), "chest": (0, 0, 2.65),
+        "waist": (0, 0, 2.02), "hip": (0, 0, 1.82), "hipL": (-0.22, 0, 1.78), "hipR": (0.22, 0, 1.78),
+        "kneeL": (-0.25, 0, 0.95), "kneeR": (0.25, 0, 0.95), "ankleL": (-0.28, 0, 0.16), "ankleR": (0.28, 0, 0.16),
+        "toeL": (-0.32, 0.25, 0.1), "toeR": (0.32, 0.25, 0.1),
+    }
+    # Keep the mannequin's movement readable and deliberately simplified for teaching.
+    if muscle == "Legs / Quads" or muscle == "Full body":
+        bend = 0.30 * (1 + a) / 2
+        pts["hip"] = (0, 0, 1.82 - bend * .55); pts["hipL"] = (-.22, 0, 1.78 - bend * .55); pts["hipR"] = (.22, 0, 1.78 - bend * .55)
+        pts["chest"] = (0, 0, 2.65 - bend * .48); pts["neck"] = (0, 0, 3.02 - bend * .48); pts["head"] = (0, 0, 3.35 - bend * .48)
+        pts["kneeL"] = (-.40, 0, .95 - bend * .18); pts["kneeR"] = (.40, 0, .95 - bend * .18)
+    elif muscle == "Shoulders":
+        lift = (1 + a) / 2
+        pts["elbowL"] = (-.72, 0, 2.42 + .55 * lift); pts["elbowR"] = (.72, 0, 2.42 + .55 * lift)
+        pts["handL"] = (-.72, 0, 2.05 + .95 * lift); pts["handR"] = (.72, 0, 2.05 + .95 * lift)
+    elif muscle == "Biceps":
+        curl = (1 + a) / 2
+        pts["elbowL"] = (-.65, 0, 2.35); pts["elbowR"] = (.65, 0, 2.35)
+        pts["handL"] = (-.62, -.03, 1.95 + .48 * curl); pts["handR"] = (.62, -.03, 1.95 + .48 * curl)
+    elif muscle == "Triceps":
+        ext = (1 + a) / 2
+        pts["elbowL"] = (-.56, 0, 2.45 + .15 * ext); pts["elbowR"] = (.56, 0, 2.45 + .15 * ext)
+        pts["handL"] = (-.65, 0, 2.05 + .45 * ext); pts["handR"] = (.65, 0, 2.05 + .45 * ext)
+    elif muscle == "Back":
+        row = (1 + a) / 2
+        for key in ["head", "neck", "shoulderL", "shoulderR", "chest", "waist"]:
+            x,y,z=pts[key]; pts[key]=(x, y + .18*row, z - (.18*row if key in ["head","neck","chest"] else 0))
+        pts["elbowL"] = (-.72, -.1, 2.36); pts["elbowR"] = (.72, -.1, 2.36)
+        pts["handL"] = (-.45, -.22 + .3*row, 2.28); pts["handR"] = (.45, -.22 + .3*row, 2.28)
+    elif muscle == "Chest":
+        push = (1 + a) / 2
+        pts["chest"]=(0,.15*push,2.62); pts["waist"]=(0,.15*push,2.00); pts["hip"]=(0,.15*push,1.82)
+        pts["shoulderL"] = (-.43,.15*push,2.78); pts["shoulderR"]=(.43,.15*push,2.78)
+        pts["elbowL"] = (-.68, -.15 + .22*push, 2.5); pts["elbowR"]=(.68,-.15 + .22*push,2.5)
+        pts["handL"] = (-.70, -.2 + .28*push, 2.25); pts["handR"]=(.70,-.2 + .28*push,2.25)
+    elif muscle == "Glutes":
+        lift = (1 + a) / 2
+        pts["hip"]=(0,0,1.55+.35*lift); pts["hipL"]=(-.22,0,1.52+.35*lift); pts["hipR"]=(.22,0,1.52+.35*lift)
+        pts["waist"]=(0,0,1.78+.30*lift); pts["chest"]=(0,0,2.10+.25*lift); pts["neck"]=(0,0,2.42+.25*lift); pts["head"]=(0,0,2.75+.25*lift)
+        pts["kneeL"] = (-.48,0,.65); pts["kneeR"]=(.48,0,.65)
+    elif muscle == "Core / Abs":
+        crunch=(1+a)/2
+        pts["chest"]=(0,.08*crunch,2.65-.28*crunch); pts["neck"]=(0,.1*crunch,3.02-.22*crunch); pts["head"]=(0,.12*crunch,3.35-.18*crunch)
+    elif muscle == "Calves":
+        rise=(1+a)/2*.24
+        pts["ankleL"]=(-.28,0,.16+rise); pts["ankleR"]=(.28,0,.16+rise); pts["kneeL"]=(-.25,0,.95+rise); pts["kneeR"]=(.25,0,.95+rise)
+    return pts
+
+
+def animated_trainer(muscle):
+    import math
+    names = ["head","neck","chest","waist","hip","shoulderL","elbowL","handL","shoulderR","elbowR","handR","hipL","kneeL","ankleL","toeL","hipR","kneeR","ankleR","toeR"]
+    bones = [("head","neck"),("neck","chest"),("chest","waist"),("waist","hip"),("neck","shoulderL"),("shoulderL","elbowL"),("elbowL","handL"),("neck","shoulderR"),("shoulderR","elbowR"),("elbowR","handR"),("hip","hipL"),("hipL","kneeL"),("kneeL","ankleL"),("ankleL","toeL"),("hip","hipR"),("hipR","kneeR"),("kneeR","ankleR"),("ankleR","toeR")]
+    def coords(phase):
+        pts=trainer_points(muscle,phase)
+        xs=[]; ys=[]; zs=[]
+        for u,v in bones:
+            for key in (u,v):
+                x,y,z=pts[key]; xs.append(x); ys.append(y); zs.append(z)
+            xs.append(None); ys.append(None); zs.append(None)
+        return xs,ys,zs,pts
+    x,y,z,pts=coords(0)
+    fig=go.Figure(data=[go.Scatter3d(x=x,y=y,z=z,mode="lines",line=dict(color="#67e8f9",width=9),hoverinfo="skip",showlegend=False),
+        go.Scatter3d(x=[v[0] for v in pts.values()],y=[v[1] for v in pts.values()],z=[v[2] for v in pts.values()],mode="markers",marker=dict(size=[12 if n=="head" else 7 for n in pts],color=["#f5c9a5" if n=="head" else "#a7f3d0" for n in pts],line=dict(color="#e0f2fe",width=1)),text=list(pts.keys()),hovertemplate="Joint: %{text}<extra></extra>",showlegend=False)])
+    frames=[]
+    for i in range(24):
+        xx,yy,zz,pp=coords(i*2*math.pi/23)
+        frames.append(go.Frame(data=[go.Scatter3d(x=xx,y=yy,z=zz),go.Scatter3d(x=[v[0] for v in pp.values()],y=[v[1] for v in pp.values()],z=[v[2] for v in pp.values()])],name=str(i)))
+    fig.frames=frames
+    fig.update_layout(height=560,margin=dict(l=0,r=0,t=10,b=0),paper_bgcolor="rgba(0,0,0,0)",
+        scene=dict(bgcolor="rgba(0,0,0,0)",xaxis=dict(visible=False,range=[-1.35,1.35]),yaxis=dict(visible=False,range=[-.8,.8]),zaxis=dict(visible=False,range=[0,3.7]),aspectmode="manual",aspectratio=dict(x=1,y=.65,z=1.4),camera=dict(eye=dict(x=1.5,y=1.8,z=1.1))),
+        updatemenus=[dict(type="buttons",showactive=False,x=.02,y=.98,xanchor="left",yanchor="top",buttons=[dict(label="▶ Play motion",method="animate",args=[None,{"frame":{"duration":85,"redraw":True},"transition":{"duration":45},"fromcurrent":True}]),dict(label="Ⅱ Pause",method="animate",args=[[None],{"mode":"immediate","frame":{"duration":0,"redraw":False},"transition":{"duration":0}}])])],
+        sliders=[dict(active=0,x=.12,y=.02,len=.8,currentvalue=dict(prefix="Motion phase "),steps=[dict(method="animate",args=[[str(i)],{"mode":"immediate","frame":{"duration":0,"redraw":True},"transition":{"duration":0}}],label=str(i+1)) for i in range(24)])])
+    return fig
+
+
 # --------------------------- Sidebar ---------------------------
 st.sidebar.markdown("# 💪 FITAI PRO")
 st.sidebar.caption("Made by Souvik Dey")
@@ -141,6 +239,7 @@ page = st.sidebar.radio(
     [
         "Dashboard",
         "Workout Planner",
+        "3D Trainer",
         "Workout Logger",
         "Diet Planner",
         "Progress Tracker",
@@ -180,8 +279,9 @@ if page == "Dashboard":
     left, right = st.columns([1.1, 1])
     with left:
         st.subheader("Your 3D performance space")
-        st.caption("Drag to rotate · Scroll to zoom · Hover over markers")
+        st.caption("Explore your training data in 3D, then open 3D Trainer for animated exercise previews.")
         st.plotly_chart(fitness_3d_scene(), use_container_width=True, config={"displaylogo": False, "scrollZoom": True})
+        st.markdown("**Motion lab:** select any major muscle group in the 3D Trainer page to play or pause its movement preview.")
     with right:
         st.subheader("Build your baseline")
         st.markdown("""
@@ -237,6 +337,37 @@ elif page == "Workout Planner":
         st.markdown(f"**Day {i + 1}: {name}**")
         st.write(details)
     st.info("Warm up, use manageable effort, and include rest days. Stop if you feel pain, dizziness, or unusual shortness of breath.")
+
+# --------------------------- 3D Trainer ---------------------------
+elif page == "3D Trainer":
+    st.markdown('<div class="hero"><div class="eyebrow">Motion lab · interactive exercise guide</div><h1>3D TRAINER STUDIO</h1><p>Explore a full-body articulated trainer and preview movement patterns for major muscle groups.</p></div>', unsafe_allow_html=True)
+    muscle = st.selectbox("Choose a muscle group", list(MUSCLE_MOVES.keys()))
+    move = MUSCLE_MOVES[muscle]
+    left, right = st.columns([1.25, 1])
+    with left:
+        st.subheader(f"Animated 3D preview · {muscle}")
+        st.caption("Use ▶ Play motion, Ⅱ Pause, or the phase slider. Drag the figure to rotate; scroll to zoom.")
+        st.plotly_chart(animated_trainer(muscle), use_container_width=True, config={"displaylogo":False,"scrollZoom":True})
+    with right:
+        st.subheader(move["exercise"])
+        st.markdown(f"**Main muscles:** {move['primary']}")
+        st.markdown(f"**Suggested starting volume:** {move['sets']} · {move['reps']}")
+        st.markdown("#### Technique cue")
+        st.info(move["tip"])
+        st.markdown("#### Session checklist")
+        st.write("1. Warm up with easy movement.\n2. Practise the movement slowly before adding resistance.\n3. Breathe continuously and take breaks.\n4. Stop if you feel pain, dizziness, or unusual symptoms.")
+        if st.button("Log this movement", type="primary", use_container_width=True):
+            execute("INSERT INTO workouts (workout_date, workout_name, duration_min, notes) VALUES (?, ?, ?, ?)", (date.today().isoformat(), f"{muscle}: {move['exercise']}", 10, "Logged from 3D Trainer Studio"))
+            st.success("Movement added to your workout history as a 10-minute practice session.")
+    st.divider()
+    st.subheader("All muscle groups")
+    cards = st.columns(3)
+    for i, (group, info) in enumerate(MUSCLE_MOVES.items()):
+        with cards[i % 3]:
+            st.markdown(f"**{group}**")
+            st.caption(info["exercise"])
+            st.write(info["primary"])
+    st.warning("These are simplified animated motion previews, not clinical anatomy models or recorded workout videos. Ask a qualified coach to check technique in person when learning unfamiliar movements.")
 
 # --------------------------- Workout Logger ---------------------------
 elif page == "Workout Logger":
