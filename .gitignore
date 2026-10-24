@@ -1,7 +1,5 @@
 __pycache__/
 *.py[cod]
 .venv/
-venv/
-.env
-.streamlit/secrets.toml
 fitai_pro.db
+.streamlit/secrets.toml

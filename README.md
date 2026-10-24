@@ -1,31 +1,28 @@
-# FITAI PRO — Made by Souvik Dey
+# FITAI PRO 3D — Made by Souvik Dey
 
-A Streamlit fitness tracking starter app with:
-- Dashboard
-- Workout planner and logger
+A Streamlit fitness tracker with an interactive Plotly 3D fitness scene and a built-in rule-based coach. No OpenAI API key or paid API billing is required.
+
+## Features
+- Dashboard with interactive 3D figure, orbit graphics, and daily metrics
+- Workout planner and workout log
 - Balanced meal ideas
-- Progress tracking
-- Hydration tracking
-- Optional OpenAI-powered fitness coach
-
-## Deploy on Streamlit Community Cloud
-1. Upload `app.py`, `requirements.txt`, and `README.md` to the root of your GitHub repository.
-2. Deploy `app.py` on Streamlit Community Cloud.
-3. In app settings, add secrets:
-   ```toml
-   OPENAI_API_KEY = "your-private-api-key"
-   OPENAI_MODEL = "your-available-model-name"
-   ```
-4. Set `OPENAI_MODEL` to a model available to your OpenAI API account. API billing is separate from a ChatGPT subscription.
-
-Keep API keys private. Never commit keys to GitHub.
+- Progress tracker and charts
+- Hydration tracker
+- Built-in coach for general fitness education (works without an API key)
+- SQLite local data storage
 
 ## Run locally
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
+1. Install Python 3.10 or newer.
+2. Open a terminal in this folder.
+3. Run `python -m venv .venv`
+4. Activate it: Windows PowerShell: `.venv\Scripts\Activate.ps1`; Linux/macOS: `source .venv/bin/activate`
+5. Run `pip install -r requirements.txt`
+6. Run `streamlit run app.py`
 
-The app stores its local tracking data in `fitai_pro.db`. On hosted deployments, local storage may not be permanent across all redeployments.
+## Deploy on Streamlit Community Cloud
+Upload `app.py`, `requirements.txt`, and this README to the root of your GitHub repository, then select `app.py` as the app file. No Secrets are needed for the built-in coach.
+
+## Data note
+SQLite data saved on a hosted Streamlit app may not persist across some redeployments/restarts. Keep backups for important records.
+
+Fitness education only, not medical advice. Start comfortably and stop if you experience pain or unusual symptoms.

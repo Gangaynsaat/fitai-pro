@@ -5,13 +5,14 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 APP_DIR = Path(__file__).resolve().parent
 DB_PATH = APP_DIR / "fitai_pro.db"
 
 st.set_page_config(
-    page_title="FITAI PRO | Made by Souvik Dey",
+    page_title="FITAI PRO 3D | Made by Souvik Dey",
     page_icon="💪",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -74,21 +75,63 @@ init_db()
 st.markdown(
     """
     <style>
-    .block-container {padding-top: 1.5rem; padding-bottom: 2rem;}
-    .hero {
-        padding: 1.5rem; border-radius: 18px;
-        background: linear-gradient(120deg, #102a43, #243b53, #334e68);
-        color: white; margin-bottom: 1rem;
-    }
-    .hero h1 {margin-bottom: .25rem;}
-    div[data-testid="stMetric"] {
-        border: 1px solid rgba(128,128,128,.25);
-        border-radius: 12px; padding: 12px;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    .stApp {font-family: Inter, sans-serif;}
+    .block-container {padding-top: 1.25rem; padding-bottom: 2rem; max-width: 1500px;}
+    .hero {padding: 2rem; border-radius: 24px; color: white; margin-bottom: 1rem;
+      background: radial-gradient(circle at 85% 15%, rgba(0,255,209,.23), transparent 28%),
+      linear-gradient(120deg, #081526, #102c43 58%, #164e63); border: 1px solid rgba(103,232,249,.25);
+      box-shadow: 0 18px 50px rgba(0,0,0,.18);}
+    .hero h1 {font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.05em; margin: 0; font-weight: 900;}
+    .hero p {color: #d4f7ff; margin-bottom: .25rem;}
+    .eyebrow {text-transform: uppercase; letter-spacing: .18em; color: #67e8f9; font-size: .75rem; font-weight: 800;}
+    div[data-testid="stMetric"] {background: linear-gradient(145deg, rgba(20,50,72,.12), rgba(20,50,72,.03));
+      border: 1px solid rgba(103,232,249,.22); border-radius: 16px; padding: 15px;}
+    div[data-testid="stMetricLabel"] {font-weight: 600;}
+    .stButton button, .stFormSubmitButton button {border-radius: 12px; font-weight: 700;}
+    section[data-testid="stSidebar"] {border-right: 1px solid rgba(103,232,249,.16);}
+    div[data-testid="stExpander"] {border-radius: 14px;}
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+def fitness_3d_scene():
+    """A lightweight interactive 3D fitness-themed figure; no external 3D assets required."""
+    # Approximate mannequin made from connected 3D points, with orbiting data nodes.
+    points = {
+        "head": (0, 0, 3.25), "neck": (0, 0, 2.85), "chest": (0, 0, 2.35),
+        "waist": (0, 0, 1.75), "hip": (0, 0, 1.35),
+        "l_shoulder": (-0.48, 0, 2.65), "l_elbow": (-0.78, 0.05, 2.15), "l_hand": (-0.9, 0.08, 1.65),
+        "r_shoulder": (0.48, 0, 2.65), "r_elbow": (0.78, 0.05, 2.15), "r_hand": (0.9, 0.08, 1.65),
+        "l_knee": (-0.28, 0, 0.7), "l_foot": (-0.32, 0.18, 0.05),
+        "r_knee": (0.28, 0, 0.7), "r_foot": (0.32, 0.18, 0.05),
+    }
+    bones = [("head","neck"),("neck","chest"),("chest","waist"),("waist","hip"),
+             ("neck","l_shoulder"),("l_shoulder","l_elbow"),("l_elbow","l_hand"),
+             ("neck","r_shoulder"),("r_shoulder","r_elbow"),("r_elbow","r_hand"),
+             ("hip","l_knee"),("l_knee","l_foot"),("hip","r_knee"),("r_knee","r_foot")]
+    fig = go.Figure()
+    for a,b in bones:
+        fig.add_trace(go.Scatter3d(x=[points[a][0],points[b][0]], y=[points[a][1],points[b][1]], z=[points[a][2],points[b][2]],
+            mode='lines', line=dict(color='#67e8f9', width=8), hoverinfo='skip', showlegend=False))
+    fig.add_trace(go.Scatter3d(x=[v[0] for v in points.values()], y=[v[1] for v in points.values()], z=[v[2] for v in points.values()],
+        mode='markers', marker=dict(size=5, color='#a7f3d0', line=dict(color='#ffffff', width=1)),
+        text=list(points.keys()), hovertemplate='%{text}<extra></extra>', showlegend=False))
+    # Three orbit rings and satellite points add depth and a futuristic dashboard look.
+    import math
+    for radius, zlev in [(1.25, 1.6), (1.05, 2.45), (1.5, 0.9)]:
+        t=[i*2*math.pi/90 for i in range(91)]
+        fig.add_trace(go.Scatter3d(x=[radius*math.cos(v) for v in t], y=[.15+radius*.42*math.sin(v) for v in t], z=[zlev+.12*math.sin(v*2) for v in t],
+            mode='lines', line=dict(color='rgba(103,232,249,0.35)', width=2), hoverinfo='skip', showlegend=False))
+    fig.update_layout(height=440, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor='rgba(0,0,0,0)',
+        scene=dict(bgcolor='rgba(0,0,0,0)', xaxis=dict(visible=False, range=[-1.8,1.8]),
+        yaxis=dict(visible=False, range=[-1.8,1.8]), zaxis=dict(visible=False, range=[-0.3,3.8]),
+        aspectmode='manual', aspectratio=dict(x=1,y=1,z=1.2), camera=dict(eye=dict(x=1.6,y=1.8,z=1.2))),
+        showlegend=False)
+    return fig
+
 
 # --------------------------- Sidebar ---------------------------
 st.sidebar.markdown("# 💪 FITAI PRO")
@@ -111,9 +154,9 @@ st.sidebar.caption("Fitness education only. Not medical advice.")
 # --------------------------- Dashboard ---------------------------
 if page == "Dashboard":
     st.markdown(
-        '<div class="hero"><h1>FITAI PRO</h1>'
-        '<p>Your fitness companion for planning, tracking, and learning.</p>'
-        '<p>Made by Souvik Dey</p></div>',
+        '<div class="hero"><div class="eyebrow">Personal performance system · 3D edition</div><h1>FITAI PRO 3D</h1>'
+        '<p>Plan smarter. Track consistency. Build healthy habits.</p>'
+        '<p>Made by Souvik Dey · Interactive fitness dashboard</p></div>',
         unsafe_allow_html=True,
     )
     today = date.today().isoformat()
@@ -134,6 +177,21 @@ if page == "Dashboard":
     c2.metric("Total workouts logged", int(total_workouts))
     c3.metric("Workout minutes", int(total_minutes))
     c4.metric("Water logged today", f"{water_total:,} ml")
+    left, right = st.columns([1.1, 1])
+    with left:
+        st.subheader("Your 3D performance space")
+        st.caption("Drag to rotate · Scroll to zoom · Hover over markers")
+        st.plotly_chart(fitness_3d_scene(), use_container_width=True, config={"displaylogo": False, "scrollZoom": True})
+    with right:
+        st.subheader("Build your baseline")
+        st.markdown("""
+        **Your daily system**
+        - 🏋️ Log movement you enjoy
+        - 💧 Record water throughout the day
+        - 🥗 Choose varied, regular meals
+        - 🌙 Leave room for rest and recovery
+        """)
+        st.info("Consistency beats intensity. Start comfortably and build gradually.")
     st.subheader("Quick start")
     st.write("Use the sidebar to plan a workout, log activity, record water, or ask the AI coach.")
     if len(workouts_today):
@@ -292,79 +350,51 @@ elif page == "Hydration Tracker":
 
 # --------------------------- AI Fitness Coach ---------------------------
 elif page == "AI Fitness Coach":
-    st.title("🤖 FITAI PRO AI Fitness Coach")
-    st.write("Ask about balanced workouts, recovery, hydration, or general nutrition.")
+    st.title("🤖 FITAI PRO Coach")
+    st.markdown("### Your built-in coach · No API key or paid AI billing needed")
+    st.write("This version uses a local rule-based coach for general fitness education. It works on Streamlit Cloud without an OpenAI API key.")
 
-    api_key = ""
-    try:
-        api_key = st.secrets.get("OPENAI_API_KEY", "")
-    except Exception:
-        api_key = os.getenv("OPENAI_API_KEY", "")
+    def coach_reply(question):
+        q = question.lower()
+        if any(word in q for word in ["pain", "injury", "injured", "dizzy", "faint", "chest"]):
+            return ("Please stop the activity if you have pain, dizziness, chest discomfort, or unusual shortness of breath. "
+                    "Tell a trusted adult and contact a qualified health professional; severe or sudden symptoms need urgent medical help. "
+                    "I can't diagnose symptoms.")
+        if any(word in q for word in ["workout", "exercise", "training", "routine", "gym", "beginner"]):
+            return ("**A balanced starting session**\n\n1. Warm up with 5–10 minutes of easy movement.\n"
+                    "2. Choose a few comfortable movements: squat-to-chair, wall push-ups, glute bridges, and bird-dogs.\n"
+                    "3. Move with control and take breaks whenever needed.\n4. Finish with easy movement and recover before your next session.\n\n"
+                    "Adjust to your experience and ability; good technique matters more than lifting heavier or doing more.")
+        if any(word in q for word in ["food", "diet", "nutrition", "protein", "meal", "eat"]):
+            return ("Aim for **variety and regular meals**: include grains or other carbohydrates, protein foods such as dal/beans, eggs, dairy, tofu or meat if you eat them, plus fruit and vegetables. "
+                    "Choose portions that leave you comfortably satisfied. Avoid crash diets or cutting out whole food groups. A qualified dietitian can help with individual needs.")
+        if any(word in q for word in ["water", "hydration", "drink"]):
+            return ("Keep water available and drink regularly, especially in hot weather and around activity. Needs vary with weather, activity, age, and health, so don't treat one fixed number as right for everyone. Follow medical advice if you have fluid restrictions.")
+        if any(word in q for word in ["rest", "sleep", "recovery", "sore", "tired"]):
+            return ("Recovery is part of training. Alternate harder sessions with easier activity or rest, aim for a regular sleep schedule, and eat enough to support everyday activity. If fatigue or soreness is persistent or unusual, speak with a qualified health professional.")
+        if any(word in q for word in ["weight", "lose weight", "gain weight", "body"]):
+            return ("Health and fitness are about more than a number: energy, strength, endurance, mood, sleep, and consistency matter too. Avoid extreme diets or trying to change your body quickly. If you have concerns about growth, weight, or nutrition, talk with a trusted adult and a qualified health professional.")
+        return ("I can help with general workout planning, recovery, hydration, and balanced meals. Try asking: **'Give me a beginner workout'**, **'What is good recovery?'**, or **'How can I stay hydrated?'**\n\n"
+                "I'm a simple built-in coach, not a clinician, and I can't diagnose medical issues.")
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.5")
-    try:
-        secret_model = st.secrets.get("OPENAI_MODEL", "")
-        if secret_model:
-            model = secret_model
-    except Exception:
-        pass
-
-    if not api_key:
-        st.warning("AI is not configured yet. Add OPENAI_API_KEY in Streamlit Community Cloud → Manage app → Settings → Secrets.")
-        st.code('OPENAI_API_KEY = "paste-your-private-key-here"\nOPENAI_MODEL = "your-available-model-name"', language="toml")
-        st.caption("Never put your API key in GitHub or share it publicly.")
-    else:
-        if "fitness_chat_history" not in st.session_state:
-            st.session_state.fitness_chat_history = []
-
-        for message in st.session_state.fitness_chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-        question = st.chat_input("Ask your fitness coach a question...")
-        if question:
-            st.session_state.fitness_chat_history.append({"role": "user", "content": question})
-            with st.chat_message("user"):
-                st.markdown(question)
-
-            instructions = (
-                "You are FITAI PRO, a friendly fitness education assistant. "
-                "Give balanced, practical, age-appropriate advice about exercise, "
-                "recovery, hydration, and general nutrition. Do not prescribe extreme "
-                "diets, excessive exercise, steroids, or dangerous supplements. Do not "
-                "diagnose or treat medical conditions. For injuries, alarming symptoms, "
-                "or individual medical concerns, recommend a qualified health professional. "
-                "Do not promise specific body changes or guaranteed results."
-            )
-            try:
-                from openai import OpenAI
-
-                client = OpenAI(api_key=api_key)
-                history = [
-                    {"role": item["role"], "content": item["content"]}
-                    for item in st.session_state.fitness_chat_history
-                ]
-                with st.chat_message("assistant"):
-                    with st.spinner("Your AI coach is thinking..."):
-                        response = client.responses.create(
-                            model=model,
-                            instructions=instructions,
-                            input=history,
-                        )
-                        answer = response.output_text or "I couldn't generate a response. Please try again."
-                        st.markdown(answer)
-                st.session_state.fitness_chat_history.append({"role": "assistant", "content": answer})
-            except ImportError:
-                st.error("The OpenAI package is missing. Add `openai` to requirements.txt and wait for the app to redeploy.")
-            except Exception as exc:
-                st.error("The AI request failed. Check the API key, API billing, model name/access, and app logs.")
-                st.caption(f"Technical details: {exc}")
-
-        if st.button("Clear conversation"):
-            st.session_state.fitness_chat_history = []
-            st.rerun()
-
-    st.caption("For education only; not medical advice.")
+    if "offline_coach_history" not in st.session_state:
+        st.session_state.offline_coach_history = []
+    for item in st.session_state.offline_coach_history:
+        with st.chat_message(item["role"]):
+            st.markdown(item["content"])
+    question = st.chat_input("Ask about workouts, food, hydration, or recovery...")
+    if question:
+        st.session_state.offline_coach_history.append({"role": "user", "content": question})
+        with st.chat_message("user"):
+            st.markdown(question)
+        answer = coach_reply(question)
+        st.session_state.offline_coach_history.append({"role": "assistant", "content": answer})
+        with st.chat_message("assistant"):
+            st.markdown(answer)
+    if st.button("Clear conversation"):
+        st.session_state.offline_coach_history = []
+        st.rerun()
+    st.caption("Fitness education only; not medical advice. The built-in coach works without live AI or API billing.")
 
 # --------------------------- Footer ---------------------------
 st.divider()
