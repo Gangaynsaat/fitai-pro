@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 APP_DIR = Path(__file__).resolve().parent
 DB_PATH = APP_DIR / "fitai_pro.db"
